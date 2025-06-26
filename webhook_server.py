@@ -34,14 +34,14 @@ def webhook():
             encontrado = False
 
             for i, fila in enumerate(filas, start=2):  # empieza desde fila 2 por encabezados
-                if fila["Teléfono"].endswith(numero[-8:]):  # verifica últimos 8 dígitos
-                    hoja.update_cell(i, 3, mensaje)  # columna 3 = columna C = Correo
-                    print(f"✅ Correo actualizado para {fila['Nombre']}")
+                if str(fila.get("TELEFONO", "")).endswith(numero[-8:]):
+                    hoja.update_cell(i, 3, mensaje)  # columna 3 = columna C = CORREO
+                    print(f"✅ Correo actualizado para {fila.get('NOMBRE', 'Desconocido')}")
                     encontrado = True
                     break
 
             if not encontrado:
-                hoja.append_row(["Desconocido", mensaje, numero])
+                hoja.append_row(["Desconocido", numero, mensaje, "Ciudad no definida"])
                 print("⚠️ Número no encontrado, añadido como nuevo.")
 
         return "ok", 200
@@ -49,6 +49,9 @@ def webhook():
     except Exception as e:
         print("❌ Error procesando webhook:", e)
         return "error", 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
