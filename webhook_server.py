@@ -16,6 +16,9 @@ def conectar_hoja():
 def es_correo_valido(texto):
     return re.match(r"[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+", texto)
 
+def es_direccion(texto):
+    return bool(re.search(r"calle|avenida|barrio|colonia|ciudad|manzana|mz|casa|#", texto, re.IGNORECASE))
+
 @app.route("/", methods=["GET"])
 def home():
     return "Servidor webhook activo para Quick Cargo Nicaragua."
@@ -29,21 +32,39 @@ def webhook():
 
         print(f"📩 Mensaje recibido de {numero}: {mensaje}")
 
-        if es_correo_valido(mensaje):
-            hoja = conectar_hoja()
-            filas = hoja.get_all_records()
-            encontrado = False
+        hoja = conectar_hoja()
+        filas = hoja.get_all_records()
+        encontrado = False
 
-            for i, fila in enumerate(filas, start=2):  # empieza desde fila 2 por encabezados
-                if str(fila.get("TELEFONO", "")).endswith(numero[-8:]):
-                    hoja.update_cell(i, 3, mensaje)  # columna 3 = columna C = CORREO
+        telefono_msg = re.sub(r"\D", "", numero)
+
+        for i, fila in enumerate(filas, start=2):
+            telefono_hoja = re.sub(r"\D", "", str(fila.get("TELEFONO", "")))
+            if telefono_hoja.endswith(telefono_msg[-8:]):
+                if es_correo_valido(mensaje):
+                    hoja.update_cell(i, 3, mensaje)
                     print(f"✅ Correo actualizado para {fila.get('NOMBRE', 'Desconocido')}")
-                    encontrado = True
-                    break
+                elif es_direccion(mensaje):
+                    hoja.update_cell(i, 4, mensaje)
+                    print(f"✅ Ciudad actualizada para {fila.get('NOMBRE', 'Desconocido')}")
+                elif len(mensaje.split()) >= 2:
+                    hoja.update_cell(i, 1, mensaje)
+                    print(f"✅ Nombre actualizado para número terminado en {telefono_hoja[-4:]}")
+                else:
+                    print("⚠️ Mensaje no reconocido como dato válido.")
+                encontrado = True
+                break
 
-            if not encontrado:
-                hoja.append_row(["Desconocido", numero, mensaje, "Ciudad no definida"])
-                print("⚠️ Número no encontrado, añadido como nuevo.")
+        if not encontrado:
+            nueva_fila = ["", telefono_msg, "", ""]
+            if es_correo_valido(mensaje):
+                nueva_fila[2] = mensaje
+            elif es_direccion(mensaje):
+                nueva_fila[3] = mensaje
+            elif len(mensaje.split()) >= 2:
+                nueva_fila[0] = mensaje
+            hoja.append_row(nueva_fila)
+            print("⚠️ Número no encontrado, añadido como nuevo.")
 
         return "ok", 200
 
