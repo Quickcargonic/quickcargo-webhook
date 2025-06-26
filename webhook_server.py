@@ -2,6 +2,7 @@ from flask import Flask, request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
+import os
 
 app = Flask(__name__)
 
@@ -49,3 +50,7 @@ def webhook():
     except Exception as e:
         print("❌ Error procesando webhook:", e)
         return "error", 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
