@@ -11,7 +11,7 @@ def conectar_hoja():
     credentials_path = "/etc/secrets/credentials.json" if os.path.exists("/etc/secrets/credentials.json") else "credentials.json"
     creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
     client = gspread.authorize(creds)
-    hoja = client.open("Base Clientes QC").sheet1
+    hoja = client.open("Base Clientes QC").worksheet("CLIENTES")
     return hoja
 
 def es_correo_valido(texto):
